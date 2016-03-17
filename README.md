@@ -1,6 +1,6 @@
 A simple package implementing a DSL for generating format strings.
 
-```(Common Lisp)
+```
 
 (make-format-string '(:str)) #| ==> "~a" |#
 (make-format-string '((:map () :str))) #| ==> "~{~a~}" |#
