@@ -173,9 +173,11 @@
            ,@args))
 
 (defmacro define-message (name (&rest args) &body spec)
-  (with-gensyms (stream)
-    `(defun ,name (,stream ,@args)
-       (&format ,stream ,spec ,@args))))
+  (with-gensyms (fs stream the-rest)
+    `(eval-when (:load-toplevel :compile-toplevel :execute)
+       (let ((,fs (make-format-string ',spec)))
+         (defun ,name (,stream ,@args &rest ,the-rest)
+           (apply #'format (list* ,stream ,fs ,@args ,the-rest)))))))
 
 (define-format-chars
 
@@ -229,7 +231,8 @@
     (:new-line (#\%))))
 
 (define-message hello (name)
-  "Hello " :str)
+  (:titlecase () "hello" #\space :str))
 
-(define-message print-comma-separated (values)
-  (:map () :str :exit ", "))
+(define-message print-comma-separated ()
+  (:own-line ()
+   (:rest () :str :exit ", ")))
