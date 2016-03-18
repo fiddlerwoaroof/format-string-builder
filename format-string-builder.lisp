@@ -35,36 +35,36 @@
   (:documentation "Prints the appropriate control sequence to the stream passed in
                    The :before method will print the Tilde."))
 
-(defmethod ((commands list) s)
+(defmethod print-format-representation ((commands list) s)
   (dolist (command commands)
     (print-format-representation command s)))
 
-(defmethod ((literal character) s)
+(defmethod print-format-representation ((literal character) s)
   (princ literal s))
 
-(defmethod ((literal string) s)
+(defmethod print-format-representation ((literal string) s)
   (princ literal s))
 
-(defmethod :around ((command format-string-command) s)
+(defmethod print-format-representation :around ((command format-string-command) s)
   (princ #\~ s)
   (call-next-method))
 
-(defmethod :before ((command format-string-command) s)
+(defmethod print-format-representation :before ((command format-string-command) s)
   (when (colon-p command)
     (princ #\: s))
   (when (at-p command)
     (princ #\@ s)))
 
-(defmethod :before ((command simple-format-string-command) s)
+(defmethod print-format-representation :before ((command simple-format-string-command) s)
   (print-format-modifiers command s))
 
-(defmethod ((command simple-format-string-command) s)
+(defmethod print-format-representation ((command simple-format-string-command) s)
   (princ (format-char command) s))
 
-(defmethod :before ((command compound-format-string-command) s)
+(defmethod print-format-representation :before ((command compound-format-string-command) s)
   (print-format-modifiers command s))
 
-(defmethod ((command compound-format-string-command) s)
+(defmethod print-format-representation ((command compound-format-string-command) s)
   (princ (start-char command) s)
   (print-format-representation (contents command) s)
   (princ #\~ s)
@@ -119,17 +119,12 @@
       (mapcar #'form-step (macroexpand forms))
       *format-stream*)))
 
-(defun %define-format-char (name format-char closing-char &key at-p colon-p)
-  ;; TODO: implement closing-char when we implement the block constructs.
-  (declare (ignore closing-char))
+(defun define-simple-format-char (name format-char &key at-p colon-p)
   (setf (gethash (intern (string name) :keyword)
                  *format-string-registry*)
         `(simple-format-string-command :format-char ,format-char
                                        :at-p ,at-p
                                        :colon-p ,colon-p)))
-
-(defun define-simple-format-char (name format-char &key at-p colon-p)
-  (%define-format-char name format-char nil :at-p at-p :colon-p colon-p))
 
 (defun define-compound-format-char (name start-char end-char &key at-p colon-p)
   (setf (gethash (intern (string name) :keyword)
