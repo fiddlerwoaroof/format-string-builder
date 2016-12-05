@@ -1,7 +1,5 @@
 (in-package #:format-string-builder)
 
-(defvar *format-command-stream*)
-
 (defclass format-string-command ()
   ((at-p :initarg :at-p :accessor at-p :initform nil)
    (colon-p :initarg :colon-p :accessor colon-p :initform nil)))
@@ -15,6 +13,9 @@
    (contents :initarg :contents :accessor contents :initform nil)
    (end-char :initarg :end-char :accessor end-char)
    (modifiers :initarg :modifiers :accessor modifiers :initform nil)))
+
+(defclass sectioned-format-string-command (compound-format-string-command)
+  ())
 
 (defmethod print-object ((obj compound-format-string-command) s)
   (declare (optimize (debug 3)))
@@ -47,28 +48,29 @@
 
 (defmethod print-format-representation :around ((command format-string-command) s)
   (princ #\~ s)
-  (call-next-method))
-
-(defmethod print-format-representation :before ((command format-string-command) s)
+  (print-format-modifiers command s)
   (when (colon-p command)
     (princ #\: s))
   (when (at-p command)
-    (princ #\@ s)))
-
-(defmethod print-format-representation :before ((command simple-format-string-command) s)
-  (print-format-modifiers command s))
+    (princ #\@ s))
+  (call-next-method))
 
 (defmethod print-format-representation ((command simple-format-string-command) s)
   (princ (format-char command) s))
 
 (defmethod print-format-representation :before ((command compound-format-string-command) s)
-  (print-format-modifiers command s))
+  (princ (start-char command) s))
 
 (defmethod print-format-representation ((command compound-format-string-command) s)
-  (princ (start-char command) s)
-  (print-format-representation (contents command) s)
+  (print-format-representation (contents command) s))
+
+(defmethod print-format-representation :after ((command compound-format-string-command) s)
   (princ #\~ s)
   (princ (end-char command) s))
+
+(defmethod print-format-representation ((command sectioned-format-string-command) s)
+  (mapcar (op (princ _ s))
+	  (intersperse "~;" (contents command))))
 
 ;;; TODO: should this be a generic function?
 (defun convert-modifier (modifier)
@@ -134,10 +136,18 @@
                                          :at-p ,at-p
                                          :colon-p ,colon-p)))
 
+(defun define-sectioned-format-char (name start-char end-char &key at-p colon-p)
+  (setf (gethash (intern (string name) :keyword)
+		 *format-string-registry*)
+	`(sectioned-format-string-command :start-char ,start-char
+					  :end-char ,end-char
+					  :at-p ,at-p
+					  :colon-p ,colon-p)))
+
 (defmacro define-compound-format-chars (&body specs)
   `(progn
      ,@(loop for spec in specs
-             collect `(define-compound-format-char ,@spec))))
+	     collect `(define-compound-format-char ,@spec))))
 
 (defmacro define-simple-format-chars (&body specs)
   `(progn
@@ -160,20 +170,26 @@
                 (list* 'progn
                        (mapcar (lambda (spec)
                                  `(:compound ,@spec))
-                               specs))))
+                               specs)))
+	      (:sectioned (name (start-char end-char) &key at-p colon-p)
+		`(define-sectioned-format-char ,name ,start-char ,end-char
+					       :at-p ,at-p :colon-p ,colon-p)))
      ,@body))
 
-(defmacro &format (stream format-spec &rest args)
+(defmacro format* (stream format-spec &rest args)
   `(format ,stream
-           (make-format-string ',format-spec)
+           ,(make-format-string format-spec)
            ,@args))
 
-(defmacro define-message (name (&rest args) &body spec)
-  (with-gensyms (fs stream the-rest)
-    `(eval-when (:load-toplevel :compile-toplevel :execute)
-       (let ((,fs (make-format-string ',spec)))
-         (defun ,name (,stream ,@args &rest ,the-rest)
-           (apply #'format (list* ,stream ,fs ,@args ,the-rest)))))))
+(defmacro define-message (name (stream-arg &rest args) &body spec)
+  (flet ((get-argument-names (arg-list)
+           (loop for s in arg-list
+                 when (and (symbolp s) (not (char= (elt (symbol-name s) 0) #\&))) collect s
+                 when (consp s) collect (car s))))
+    (with-gensyms (fs the-rest)
+      `(let ((,fs ,(make-format-string spec)))
+         (defun ,name (,stream-arg ,@args &rest ,the-rest)
+           (apply #'format ,stream-arg ,fs ,@(get-argument-names args) ,the-rest))))))
 
 (define-format-chars
 
@@ -201,6 +217,9 @@
     (:cjust (#\< #\>) :at-p t :colon-p t)
     (:center (#\< #\>) :at-p t :colon-p t))
 
+  ;; Conditional output
+  (:sectioned :y-or-n (#\[ #\]) :colon-p t)
+
   ;; Case printing characters.
   (:compounds
     (:lowercase (#\( #\)))
@@ -223,12 +242,13 @@
     (:exit (#\^))
     (:go-to (#\*))
     (:end-section (#\;))
+    (:fresh-line (#\&))
     (:ensure-line (#\&))
     (:new-line (#\%))))
 
-(define-message hello (name)
+(define-message hello (stream name)
   (:titlecase () "hello" #\space :str))
 
-(define-message print-comma-separated ()
+(define-message print-comma-separated (stream)
   (:own-line ()
    (:rest () :str :exit ", ")))

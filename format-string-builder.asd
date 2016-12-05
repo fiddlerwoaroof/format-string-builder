@@ -4,7 +4,8 @@
   :description "Describe format-string-builder here"
   :author "fiddlerwoaroof"
   :license "MIT"
-  :depends-on (:alexandria)
+  :depends-on (:alexandria
+	       :serapeum)
   :serial t
   :components ((:file "package")
                (:file "format-string-builder")))
