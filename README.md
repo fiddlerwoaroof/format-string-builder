@@ -6,13 +6,21 @@ A simple package implementing a DSL for generating format strings.
 
 # Introduction
 
+## Hello World
+
+```lisp
+CL-USER> (define-message hello (name)
+           "Hello " :str)
+CL-USER> (hello "world")
+Hello world
+NIL
+```
+
 ```lisp
 
 (make-format-string '(:str)) #| ==> "~a" |#
 (make-format-string '((:map () :str))) #| ==> "~{~a~}" |#
 
-(define-message hello (name)
-  "Hello " :str)
 (define-message print-comma-separated (values)
   (:map () :str))
 

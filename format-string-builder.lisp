@@ -87,9 +87,6 @@
       (null "")
       (t modifier))))
 
-(#-dev defvar
- #+dev defparameter *format-string-registry* (make-hash-table))
-
 (defun generate-function-defs ()
   (loop for name being the hash-keys in *format-string-registry* using (hash-value spec)
         collect `(,name (&key colon-p at-p)
@@ -105,24 +102,28 @@
      (setf (contents command) (mapcar #'form-step contents))
      command)))
 
-(defun form-step (form)
-  (flet ((dispatch-keyword (keyword &optional args)
-           (if-let ((spec (gethash keyword *format-string-registry*)))
-             (let ((result (apply #'make-instance spec)))
-               (when args
-                 (dispatch-command result args))
-               result))))
-    (etypecase form
-      (list (cond ((null form) nil)
-                  ((keywordp (car form)) (dispatch-keyword (car form) (cdr form)))))
-      ((or character string) form)
-      (keyword (dispatch-keyword form)))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (#-dev defvar #+dev defparameter
+	 *format-string-registry* (make-hash-table))
 
-(defun make-format-string (forms)
-  (with-output-to-string (*format-stream*)
-    (print-format-representation
-      (mapcar #'form-step (macroexpand forms))
-      *format-stream*)))
+  (defun form-step (form)
+    (flet ((dispatch-keyword (keyword &optional args)
+	     (if-let ((spec (gethash keyword *format-string-registry*)))
+	       (let ((result (apply #'make-instance spec)))
+		 (when args
+		   (dispatch-command result args))
+		 result))))
+      (etypecase form
+	(list (cond ((null form) nil)
+		    ((keywordp (car form)) (dispatch-keyword (car form) (cdr form)))))
+	((or character string) form)
+	(keyword (dispatch-keyword form)))))
+
+  (defun make-format-string (forms)
+    (with-output-to-string (*format-stream*)
+      (print-format-representation
+       (mapcar #'form-step (macroexpand forms))
+       *format-stream*))))
 
 (defun define-simple-format-char (name format-char &key at-p colon-p)
   (setf (gethash (intern (string name) :keyword)
@@ -257,9 +258,11 @@ spec passed as the body."
     (:ensure-line (#\&))
     (:new-line (#\%))))
 
-(define-message hello (stream name)
-  (:titlecase () "hello" #\space :str))
+#+null
+(progn
+  (define-message hello (stream name)
+    (:titlecase () "hello" #\space :str))
 
-(define-message print-comma-separated (stream)
-  (:own-line ()
-   (:rest () :str :exit ", ")))
+  (define-message print-comma-separated (stream)
+    (:own-line ()
+	       (:rest () :str :exit ", "))))

@@ -1,7 +1,7 @@
 ;;;; format-string-builder.asd
 
 (asdf:defsystem #:format-string-builder
-  :description "Describe format-string-builder here"
+  :description "A DSL wrapping cl:format's syntax with something more lispy."
   :author "fiddlerwoaroof"
   :license "MIT"
   :depends-on (:alexandria
