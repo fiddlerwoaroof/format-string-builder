@@ -43,6 +43,9 @@
 (defmethod print-format-representation ((literal character) s)
   (princ literal s))
 
+(defmethod print-format-representation ((literal integer) s)
+  (princ literal s))
+
 (defmethod print-format-representation ((literal string) s)
   (princ literal s))
 
@@ -182,6 +185,9 @@
            ,@args))
 
 (defmacro define-message (name (stream-arg &rest args) &body spec)
+  "Define a function called NAME that takes a stream argument and a
+variable argument list that formats the arguments according to the
+spec passed as the body."
   (flet ((get-argument-names (arg-list)
            (loop for s in arg-list
                  when (and (symbolp s) (not (char= (elt (symbol-name s) 0) #\&))) collect s
@@ -223,8 +229,11 @@
   ;; Case printing characters.
   (:compounds
     (:lowercase (#\( #\)))
+    (:downcase (#\( #\)))
     (:uppercase (#\( #\)) :at-p t :colon-p t)
+    (:upcase (#\( #\)) :at-p t :colon-p t)
     (:titlecase (#\( #\)) :colon-p t)
+    (:capitalize (#\( #\)) :colon-p t)
     (:initialcap (#\( #\)) :at-p t))
 
   (:compounds
@@ -237,7 +246,9 @@
     (:dec (#\d))
     (:decimal (#\d))
     (:hex (#\x))
+    (:hexadecimal (#\d))
     (:oct (#\o))
+    (:octal (#\o))
     (:currency (#\$))
     (:exit (#\^))
     (:go-to (#\*))
