@@ -4,5 +4,6 @@
   (:use #:cl #:alexandria)
   (:import-from #:serapeum #:intersperse #:op)
   (:export #:make-format-string
-           #:define-message))
+           #:define-message
+	   #:format*))
 

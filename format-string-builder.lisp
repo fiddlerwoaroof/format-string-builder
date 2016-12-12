@@ -225,7 +225,8 @@ spec passed as the body."
     (:center (#\< #\>) :at-p t :colon-p t))
 
   ;; Conditional output
-  (:sectioned :y-or-n (#\[ #\]) :colon-p t)
+  ; TODO: make :sectioned work!
+  (:compound :y-or-n (#\[ #\]) :colon-p t)
 
   ;; Case printing characters.
   (:compounds
@@ -253,6 +254,8 @@ spec passed as the body."
     (:currency (#\$))
     (:exit (#\^))
     (:go-to (#\*))
+    (:jump-to-nth (#\*) :at-p t)
+    (:backup (#\*) :colon-p t)
     (:end-section (#\;))
     (:fresh-line (#\&))
     (:ensure-line (#\&))
