@@ -90,7 +90,7 @@ directives.
 - :end-section --- Translates to ~;, divides sections of a construct (TODO: maybe this will go away?)
 - :goto --- Translates to ~*, moves within the list of arguments
 - :fresh-line --- Translates to ~&, ensures we're at the beginning of a line and, possibly adds Modifier-1 linebreaks
-- :ensure-line --- Translates to ~7, alias for :fresh-line
+- :ensure-line --- Translates to ~&, alias for :fresh-line
 - :new-line --- Adds a linebreak
 
 ## Compound Format Operations
